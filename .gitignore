@@ -1,0 +1,19 @@
+/themes/twenty*/
+
+# ignore node dependency directories
+node_modules/
+
+# ignore log files 
+*.log
+
+.htaccess
+sitemap.xml
+sitemap.xml.gz
+
+# OS generated files #
+######################
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+.idea/
