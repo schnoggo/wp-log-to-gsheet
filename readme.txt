@@ -3,7 +3,7 @@ Contributors: lonkoenig
 Tags: analytics,logging
 Requires at least: 5.2
 Tested up to: 5.3.2
-Requires PHP: 7.2
+Requires PHP: 5.6
 License: MIT
 License URI: .gitignore
 
