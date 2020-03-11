@@ -4,7 +4,9 @@
  *  namespace prefix gl2
  */
 
-
+if ( ! function_exists( 'wp_handle_upload' ) ) {
+    require_once( ABSPATH . 'wp-admin/includes/file.php' );
+}
 
 // admin page:
 // ======================================================
@@ -83,7 +85,7 @@ function gl2_setting_sanitize($input){
 
 
 /*
- * Draw an input fields in a dashboard panel
+ * Draw an input field on a dashboard panel
  * 
  * @param array  https://developer.wordpress.org/reference/functions/add_settings_field/
  *
@@ -92,8 +94,11 @@ function gl2_field_callback($args){
 	global $gl2_vals;
 	$ui = $gl2_vals['ui_strings'];
 	$textwidth = 40;
+	$err_msg = array(); // list of any errors encountered when processing the form
 	$option_value = get_option($args['id'], $args['default']);
+	
 	if ( 'numeric' == $args['type'] ){$textwidth = 6;}
+
   switch ( $args['type'] ) {
 		case 'bool':
 			echo '<select id="' . $args['id'] . '" name="' . $args['id'] . '">';
@@ -141,6 +146,87 @@ function gl2_field_callback($args){
 			
 		break;
 		
+		case 'secret':
+		   echo '<input id="' . $args['id'] . '" '
+			.'name="' . $args['id'] . '" '
+			.'size="' . $textwidth . '" type="password" '
+			.'value="' . $option_value . '" ' // $this_option
+			.'class="secret-input" '
+			.' />';
+			echo '<span data-taget="' . $args['id'] .'" class="secret-toggle">show</span>';
+		
+		break;
+
+
+		
+    case 'manage_credentials':
+      // First thing: handle file upload if that happened
+      $json_op = array_key_exists('json_op',$_POST) ? $_POST['json_op'] : false;
+    
+      if ((false == $option_value) or ('false' == $option_value)){
+        echo __("No credentials stored.", 'gl2');
+      } else {
+        echo '<p>Parse out email and display.</p>';
+        echo "<pre>\n";
+        echo print_r($option_value , true);
+        echo "\n</pre>\n";
+    
+      }
+
+
+      switch($json_op){
+        case 'upload':
+          if (!array_key_exists('upload', $_FILES)) {
+            $err_msg[] = __('No file uploaded', 'gl2');
+          } else {
+            if ( count($_FILES) > 0 ){
+              $overrides = array(
+                'test_form' => false,
+                'action' => $_SERVER['$REQUEST_URI'],
+              );
+			
+              $upload_result = wp_handle_upload(
+                $_FILES['upload'], // file record
+                $overrides // https://codex.wordpress.org/Function_Reference/wp_handle_upload
+              );            
+              echo printf( __('<em>Uploading %s </em>', 'gl2'),  $_FILES['upload']['name']);
+              
+              if (array_key_exists('error', $upload_result)) {
+                $err_msg[] = __('There was a problem uploading the file', 'gl2') . '(' . $upload_result['error'] . ')';
+              } else {	
+                // file has been uploaded. good to go: 
+                // read contents of file:
+                $json_file = fopen( $upload_info['file'], "r" );
+                if (false == $json_file){
+                  $err_msg[] = __('File not created on server', 'gl2');
+                } else {
+                  $contents  = fread( $json_file );
+                  update_option($args['id'], $contents);
+                }
+              }              
+
+              
+            } else {
+              $err_msg[] = __('No file specified', 'gl2');
+            }
+          }
+
+        // no break - after processing upload draw the form
+      
+        default:
+          echo '<div class="wrap"><em>Upload JSON credentials:</em><div>';
+          echo '<form id="upload_form" action="'  . $_SERVER['REQUEST_URI'] . '" enctype="multipart/form-data" method="post" >
+          <p><input name="upload" id="upload" type="file"  /></p>
+          <p><input id="btnSubmit" type="submit" value="Upload JSON File" /></p>
+          <input type="hidden" name="json_op" value="upload" />
+          </form>
+          ';
+    
+      }
+      break;
+
+
+		
 		default:
 		    echo '<input id="' . $args['id'] . '" '
 			.'name="' . $args['id'] . '" '
@@ -173,6 +259,8 @@ function gl2_admin_menu(){
 		'gl2_options_display' // function
 	);
 }
+
+
 
 function gl2_options_display() {
 	global $gl2_vals;

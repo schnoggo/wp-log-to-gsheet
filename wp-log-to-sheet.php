@@ -36,6 +36,7 @@ THE SOFTWARE.
 
 // define the options panel:
 	$gl2_vals = array(
+	  'field_prefix' => 'gl2_',
 		'option_fields' => array(
 
       'gl2_tracked_events' => array(
@@ -70,25 +71,25 @@ THE SOFTWARE.
 				'default' => 'false',
 			),
 			
-			'gl2_gcid' => array( 
-				'name' => 'Google Client ID',
-				'note' => __('See the instructions __link__ for where to find this', 'gl2'),
+      'gl2_saved_credentials' => array(
+				'name' => __('Saved Credentials', 'gl2'),
+				'note' => __('From the JSON file you got from Google.', 'gl2'),
+				'type' => 'manage_credentials',
+				'default' => 'false',
+			),
+
+			'gl2_sheet_id' => array( 
+				'name' => 'Google spreadsheetID',
+				'note' => __('The ID of your speadsheet (-- link to instructions --)', 'gl2'),
 				'type' => 'string', 
 				'default' => ''
 			),
 			
-			'gl2_gcsecret' => array( 
-				'name' => 'Google Client Secret',
-				'note' => __('See the instructions __link__ for where to find this', 'gl2'),
+      'gl2_api_callback' => array( 
+				'name' => 'OAUTH callback path',
+				'note' => __('You will set this when you set up your Google OAUTH', 'gl2'),
 				'type' => 'string', 
-				'default' => ''
-			),
-			
-			'gl2_gpid' => array( 
-				'name' => 'Google Property ID',
-				'note' => __('Use this option if you&rsquo;re using Universal Analytics and have changed the global object name from the default "ga". Note: Scroll Depth automatically supports the common custom object name, "__gaTracker".', 'gl2'),
-				'type' => 'string', 
-				'default' => ''
+				'default' => 'gapi'
 			),
 
 		),
@@ -103,9 +104,11 @@ THE SOFTWARE.
 			'true' => __('true', 'gl2'),
 			'false' => __('false', 'gl2'),
 			'options_title' => __('Options', 'gl2'),
-			
+			'show_secret' => __('Show Secret', 'gl2'),
 		
-		)
+		),
+		'errors' => array(),
+		'auth_client' => 0,
 	);
 
 /**
@@ -130,9 +133,16 @@ function gl2_head(){
 	global $gl2_vals;
 
   // echo out a <script> or <style> block
+  echo "<!-- helpme -->\n";
+  echo "<script>
+  jQuery( document ).ready(function(){
+  console.log('now?'); 
+   
+   });
+</script>
+";
 }
-
-add_action("wp_head", "gl2_head");
+add_action("wp_head", "gl2_head", 50);
 
 
 /*
@@ -147,9 +157,12 @@ function gl2_scripts() {
 
 	add_action("wp_enqueue_scripts", "gl2_scripts");
 
-if ( is_admin() ) { // only need to load admin if we're looking at admin panel
 
+require_once(plugin_dir_path( __FILE__ ) . 'utility.php'); // common functions
+
+if ( is_admin() ) { // only need to load admin if we're looking at admin panel
 	require_once(plugin_dir_path( __FILE__ ) . 'admin.php'); // back-end admin panels
 	require_once(plugin_dir_path( __FILE__ ) . 'privacy.php'); // admin privacy information
-
+	require_once(plugin_dir_path( __FILE__ ) . 'google.php'); // Glue for google sheets
 }
+
